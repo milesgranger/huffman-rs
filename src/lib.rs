@@ -6,8 +6,8 @@ use bit_vec::BitVec;
 
 pub struct Encoder {}
 
-static LEFT: bool = false;
-static RIGHT: bool = true;
+const LEFT: bool = false;
+const RIGHT: bool = true;
 
 pub(crate) struct Block<'a> {
     node: Node<'a>,
@@ -122,6 +122,9 @@ mod tests {
 
     use crate::{create_node_list, node_list_into_tree};
     use bit_vec::BitVec;
+    use std::collections::HashSet;
+    use std::iter::FromIterator;
+    use std::collections::hash_map::RandomState;
 
     #[test]
     fn test_create_node_list() {
@@ -148,15 +151,15 @@ mod tests {
     fn test_tree() {
         let data = b"abbcccddddeeeeee!!!!abcdefghijklmnopqrstuvwxyz1234567890!#%&/()[]{}$@";
         let node_list = create_node_list(data);
-        //assert_eq!(node_list.len(), 4); // 4 unique bytes
+        let unique: HashSet<&u8, RandomState> = HashSet::from_iter(data.iter());
+        assert_eq!(node_list.len(), unique.len()); // 4 unique bytes
 
         let tree = node_list_into_tree(node_list);
         for (i, byte) in b"abcdefghijklmnopqrstuvwxyz".iter().enumerate() {
             assert!(tree.contains(byte));
-
             let mut path = BitVec::new();
             tree.path_for(byte, &mut path);
-            dbg!(path);
+            assert!(path.len() > 0);
         }
     }
 }
