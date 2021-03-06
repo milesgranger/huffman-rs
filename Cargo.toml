@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 serde = "^1"
+bit-vec = "^0.6"
