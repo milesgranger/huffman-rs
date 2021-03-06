@@ -1,9 +1,8 @@
-use std::iter::FromIterator;
-use std::collections::HashSet;
 use std::collections::hash_map::RandomState;
+use std::collections::HashSet;
+use std::iter::FromIterator;
 
 use bit_vec::BitVec;
-
 
 pub struct Encoder {}
 
@@ -12,7 +11,7 @@ static RIGHT: bool = true;
 
 pub(crate) struct Block<'a> {
     node: Node<'a>,
-    data: [u8; 64000]
+    data: [u8; 64000],
 }
 
 #[derive(Debug)]
@@ -20,37 +19,32 @@ pub(crate) struct Node<'a> {
     left: Option<Box<Node<'a>>>,
     right: Option<Box<Node<'a>>>,
     datum: Option<&'a u8>,
-    count: usize
+    count: usize,
 }
 
 impl<'a> Node<'a> {
     fn new(datum: Option<&'a u8>, count: usize) -> Self {
-        Self { datum, count, right: None, left: None }
+        Self {
+            datum,
+            count,
+            right: None,
+            left: None,
+        }
     }
     /// Extend the bit path for a given datum
     fn path_for(&self, datum: &u8, path: &mut BitVec) {
+        if let Some(left) = &self.left {
+            if left.contains(datum) {
+                path.push(LEFT);
+                left.path_for(datum, path);
+                return;
+            }
+        }
         if let Some(right) = &self.right {
-            if let Some(d) = right.datum {
-                if d == datum {
-                    path.push(RIGHT);
-                }
+            if right.contains(datum) {
+                path.push(RIGHT);
+                right.path_for(datum, path);
             }
-        } else if let Some(left) = &self.left {
-            if let Some(d) = left.datum {
-                if d == datum {
-                    path.push(LEFT)
-                }
-            }
-        } else {
-          if self.left_contains(datum) {
-              if let Some(left) = &self.left {
-                  left.path_for(datum, path)
-              }
-          } else if self.right_contains(datum) {
-              if let Some(right) = &self.right {
-                  right.path_for(datum, path)
-              }
-          }
         }
     }
     /// Determine if this node or any of the children contain the datum
@@ -75,18 +69,16 @@ impl<'a> Node<'a> {
     }
     /// Determine if the left node, or any of its children contain the datum
     fn left_contains(&self, datum: &u8) -> bool {
-        if let Some(left) = &self.left {
-            left.contains(datum)
-        } else {
-            false
+        match &self.left {
+            Some(left) => left.contains(datum),
+            None => false,
         }
     }
     /// Determine if the right node, or an of its children contain the datum
     fn right_contains(&self, datum: &u8) -> bool {
-        if let Some(right) = &self.right {
-            right.contains(datum)
-        } else {
-            false
+        match &self.right {
+            Some(right) => right.contains(datum),
+            None => false,
         }
     }
 }
@@ -129,12 +121,13 @@ pub(crate) fn node_list_into_tree(mut nodes: Vec<Node<'_>>) -> Node<'_> {
 mod tests {
 
     use crate::{create_node_list, node_list_into_tree};
+    use bit_vec::BitVec;
 
     #[test]
     fn test_create_node_list() {
         let data = b"abbccc!!!!";
         let mut node_list = create_node_list(data);
-        assert_eq!(node_list.len(), 4);  // 4 unique bytes
+        assert_eq!(node_list.len(), 4); // 4 unique bytes
         node_list.sort_by_key(|node| node.count);
         for (i, byte) in b"abc!".iter().enumerate() {
             assert!(node_list[i].contains(byte));
@@ -144,8 +137,8 @@ mod tests {
     #[test]
     fn test_node_list_into_tree() {
         let data = b"abbccc!!!!";
-        let mut node_list = create_node_list(data);
-        assert_eq!(node_list.len(), 4);  // 4 unique bytes
+        let node_list = create_node_list(data);
+        assert_eq!(node_list.len(), 4); // 4 unique bytes
 
         let tree = node_list_into_tree(node_list);
         assert_eq!(tree.count, data.len());
@@ -153,13 +146,17 @@ mod tests {
 
     #[test]
     fn test_tree() {
-        let data = b"abbccc!!!!";
-        let mut node_list = create_node_list(data);
-        assert_eq!(node_list.len(), 4);  // 4 unique bytes
+        let data = b"abbcccddddeeeeee!!!!abcdefghijklmnopqrstuvwxyz1234567890!#%&/()[]{}$@";
+        let node_list = create_node_list(data);
+        //assert_eq!(node_list.len(), 4); // 4 unique bytes
 
         let tree = node_list_into_tree(node_list);
-        for byte in b"abc!".iter() {
+        for (i, byte) in b"abcdefghijklmnopqrstuvwxyz".iter().enumerate() {
             assert!(tree.contains(byte));
+
+            let mut path = BitVec::new();
+            tree.path_for(byte, &mut path);
+            dbg!(path);
         }
     }
 }
