@@ -57,12 +57,20 @@ impl<'a> Node<'a> {
     fn contains(&self, datum: &u8) -> bool {
         if let Some(d) = self.datum {
             d == datum
-        } else if let Some(left) = &self.left {
-            left.contains(datum)
-        } else if let Some(right) = &self.right {
-            right.contains(datum)
         } else {
-            false
+            if let Some(left) = &self.left {
+                if left.contains(datum) {
+                    true
+                } else {
+                    if let Some(right) = &self.right {
+                        right.contains(datum)
+                    } else {
+                        false
+                    }
+                }
+            } else {
+                false
+            }
         }
     }
     /// Determine if the left node, or any of its children contain the datum
