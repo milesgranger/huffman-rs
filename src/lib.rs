@@ -79,20 +79,6 @@ impl<'a> Node<'a> {
             }
         }
     }
-    /// Determine if the left node, or any of its children contain the datum
-    fn left_contains(&self, datum: &u8) -> bool {
-        match &self.left {
-            Some(left) => left.contains(datum),
-            None => false,
-        }
-    }
-    /// Determine if the right node, or an of its children contain the datum
-    fn right_contains(&self, datum: &u8) -> bool {
-        match &self.right {
-            Some(right) => right.contains(datum),
-            None => false,
-        }
-    }
 }
 
 /// Create a node list from input data
