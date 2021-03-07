@@ -1,17 +1,20 @@
 use std::collections::hash_map::RandomState;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use std::iter::FromIterator;
 
+use rayon::prelude::*;
 use bit_vec::BitVec;
-
-pub struct Encoder {}
 
 const LEFT: bool = false;
 const RIGHT: bool = true;
 
-pub(crate) struct Block<'a> {
-    node: Node<'a>,
-    data: [u8; 64000],
+pub fn compress(data: &[u8]) -> Vec<u8> {
+    let mut node_list = create_node_list(data);
+    let tree = node_list_into_tree(node_list);
+    let mut buffer = BitVec::new();
+    data.iter()
+        .for_each(|byte| tree.path_for(byte, &mut buffer));
+    buffer.to_bytes()
 }
 
 #[derive(Debug)]
@@ -52,51 +55,23 @@ impl<'a> Node<'a> {
         if let Some(d) = self.datum {
             d == datum
         } else {
-            if let Some(left) = &self.left {
-                if left.contains(datum) {
-                    true
-                } else {
-                    if let Some(right) = &self.right {
-                        right.contains(datum)
-                    } else {
-                        false
-                    }
-                }
-            } else {
-                false
-            }
-        }
-    }
-    /// Determine if the left node, or any of its children contain the datum
-    fn left_contains(&self, datum: &u8) -> bool {
-        match &self.left {
-            Some(left) => left.contains(datum),
-            None => false,
-        }
-    }
-    /// Determine if the right node, or an of its children contain the datum
-    fn right_contains(&self, datum: &u8) -> bool {
-        match &self.right {
-            Some(right) => right.contains(datum),
-            None => false,
+            // is a parent node, always has left and right
+            self.left.as_ref().unwrap().contains(datum) || self.right.as_ref().unwrap().contains(datum)
         }
     }
 }
 
 /// Create a node list from input data
 pub(crate) fn create_node_list(input: &[u8]) -> Vec<Node<'_>> {
-    let set: HashSet<&u8, RandomState> = HashSet::from_iter(input.iter());
-    set.iter()
-        .map(|key| {
-            let n_occurances = input.iter().filter(|byte| byte == key).count();
-            Node::new(Some(*key), n_occurances)
-        })
-        .collect()
-}
-
-/// Sort node list
-pub(crate) fn sort_node_list(nodes: &mut Vec<Node<'_>>) {
-    nodes.sort_by_key(|node| node.count)
+    let mut mapping = HashMap::new();
+    input.iter()
+        .for_each(|byte| {
+            let count = mapping.entry(byte).or_insert(0);
+            *count += 1;
+        });
+    mapping.iter()
+        .map(|(k, v)| Node::new(Some(*k), *v))
+        .collect::<Vec<Node>>()
 }
 
 /// Convert node list into a tree with one root node
@@ -120,7 +95,7 @@ pub(crate) fn node_list_into_tree(mut nodes: Vec<Node<'_>>) -> Node<'_> {
 #[cfg(test)]
 mod tests {
 
-    use crate::{create_node_list, node_list_into_tree};
+    use crate::{create_node_list, node_list_into_tree, compress};
     use bit_vec::BitVec;
     use std::collections::HashSet;
     use std::iter::FromIterator;
@@ -161,5 +136,15 @@ mod tests {
             tree.path_for(byte, &mut path);
             assert!(path.len() > 0);
         }
+    }
+
+    #[test]
+    fn test_compress() {
+        let data = (0..2)
+            .map(|_| b"oh what a beautiful day, oh what a beautiful morning!".to_vec())
+            .flat_map(|v| v)
+            .collect::<Vec<u8>>();
+        let compressed = compress(&data);
+        assert!(compressed.len() < data.len());
     }
 }

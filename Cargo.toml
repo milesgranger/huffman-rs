@@ -9,3 +9,14 @@ edition = "2018"
 [dependencies]
 serde = "^1"
 bit-vec = "^0.6"
+rayon = "^1"
+
+[dev-dependencies]
+criterion = "^0.3"
+
+[[bench]]
+name = "benchmarks"
+harness = false
+
+[profile.release]
+debug = true
