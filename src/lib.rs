@@ -17,7 +17,7 @@ pub(crate) struct Block<'a> {
 pub fn compress(data: &[u8]) -> Vec<u8> {
     let mut node_list = create_node_list(data);
     let tree = node_list_into_tree(node_list);
-    let mut buffer = BitVec::new();
+    let mut buffer = BitVec::with_capacity(data.len() / 2);
     data
         .iter()
         .for_each(|byte| {
