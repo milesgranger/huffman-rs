@@ -2,6 +2,7 @@ use std::collections::hash_map::RandomState;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
+use rayon::prelude::*;
 use bit_vec::BitVec;
 
 pub struct Encoder {}
@@ -84,7 +85,7 @@ impl<'a> Node<'a> {
 /// Create a node list from input data
 pub(crate) fn create_node_list(input: &[u8]) -> Vec<Node<'_>> {
     let set: HashSet<&u8, RandomState> = HashSet::from_iter(input.iter());
-    set.iter()
+    set.par_iter()
         .map(|key| {
             let n_occurances = input.iter().filter(|byte| byte == key).count();
             Node::new(Some(*key), n_occurances)
