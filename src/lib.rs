@@ -10,8 +10,27 @@ const LEFT: bool = false;
 const RIGHT: bool = true;
 
 pub(crate) struct Block<'a> {
-    node: Node<'a>,
-    data: [u8; 64000],
+    node: Option<Node<'a>>,
+    data: &'a [u8],
+}
+impl<'a> Block<'a> {
+    pub fn new(data: &'a [u8]) -> Self {
+        Self { data, node: None }
+    }
+    pub fn compress(&self) -> Vec<u8> {
+        let mut node_list = create_node_list(self.data);
+        let tree = node_list_into_tree(node_list);
+        self.data
+            .iter()
+            .map(|byte| {
+                let mut path = BitVec::new();
+                tree.path_for(byte, &mut path);
+                path
+            })
+            .flat_map(|path| path)
+            .collect::<BitVec>()
+            .to_bytes()
+    }
 }
 
 #[derive(Debug)]
@@ -120,7 +139,7 @@ pub(crate) fn node_list_into_tree(mut nodes: Vec<Node<'_>>) -> Node<'_> {
 #[cfg(test)]
 mod tests {
 
-    use crate::{create_node_list, node_list_into_tree};
+    use crate::{create_node_list, node_list_into_tree, Block};
     use bit_vec::BitVec;
     use std::collections::HashSet;
     use std::iter::FromIterator;
@@ -161,5 +180,18 @@ mod tests {
             tree.path_for(byte, &mut path);
             assert!(path.len() > 0);
         }
+    }
+
+    #[test]
+    fn block_compress() {
+        let data = (0..2)
+            .map(|_| b"oh what a beautiful day, oh what a beautiful morning!".to_vec())
+            .flat_map(|v| v)
+            .collect::<Vec<u8>>();
+        let mut block = Block::new(&data);
+        let compressed = block.compress();
+        dbg!(&data.len());
+        dbg!(&compressed.len());
+        dbg!(String::from_utf8_lossy(&compressed));
     }
 }
