@@ -62,19 +62,8 @@ impl<'a> Node<'a> {
         if let Some(d) = self.datum {
             d == datum
         } else {
-            if let Some(left) = &self.left {
-                if left.contains(datum) {
-                    true
-                } else {
-                    if let Some(right) = &self.right {
-                        right.contains(datum)
-                    } else {
-                        false
-                    }
-                }
-            } else {
-                false
-            }
+            // is a parent node, always has left and right
+            self.left.as_ref().unwrap().contains(datum) || self.right.as_ref().unwrap().contains(datum)
         }
     }
 }
