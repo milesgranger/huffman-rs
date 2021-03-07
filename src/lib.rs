@@ -33,6 +33,10 @@ impl<'a> Block<'a> {
     }
 }
 
+pub fn compress(data: &[u8]) -> Vec<u8> {
+    Block::new(data).compress()
+}
+
 #[derive(Debug)]
 pub(crate) struct Node<'a> {
     left: Option<Box<Node<'a>>>,
