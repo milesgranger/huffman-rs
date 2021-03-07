@@ -18,15 +18,10 @@ pub(crate) struct Block<'a> {
 pub fn compress(data: &[u8]) -> Vec<u8> {
     let mut node_list = create_node_list(data);
     let tree = node_list_into_tree(node_list);
-    data.par_chunks(data.len() / 8)
-        .map(|chunk| {
-            let mut buf = BitVec::new();
-            chunk.iter()
-                .for_each(|byte| tree.path_for(byte, &mut buf));
-            buf.to_bytes()
-        })
-        .flat_map(|v| v)
-        .collect::<Vec<u8>>()
+    let mut buffer = BitVec::new();
+    data.iter()
+        .for_each(|byte| tree.path_for(byte, &mut buffer));
+    buffer.to_bytes()
 }
 
 #[derive(Debug)]
@@ -87,7 +82,7 @@ impl<'a> Node<'a> {
 /// Create a node list from input data
 pub(crate) fn create_node_list(input: &[u8]) -> Vec<Node<'_>> {
     let set: HashSet<&u8, RandomState> = HashSet::from_iter(input.iter());
-    set.par_iter()
+    set.iter()
         .map(|key| {
             let n_occurances = input.iter().filter(|byte| byte == key).count();
             Node::new(Some(*key), n_occurances)
