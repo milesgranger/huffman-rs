@@ -5,15 +5,8 @@ use std::iter::FromIterator;
 use rayon::prelude::*;
 use bit_vec::BitVec;
 
-pub struct Encoder {}
-
 const LEFT: bool = false;
 const RIGHT: bool = true;
-
-pub(crate) struct Block<'a> {
-    node: Option<Node<'a>>,
-    data: &'a [u8],
-}
 
 pub fn compress(data: &[u8]) -> Vec<u8> {
     let mut node_list = create_node_list(data);
@@ -79,11 +72,6 @@ pub(crate) fn create_node_list(input: &[u8]) -> Vec<Node<'_>> {
     mapping.iter()
         .map(|(k, v)| Node::new(Some(*k), *v))
         .collect::<Vec<Node>>()
-}
-
-/// Sort node list
-pub(crate) fn sort_node_list(nodes: &mut Vec<Node<'_>>) {
-    nodes.sort_by_key(|node| node.count)
 }
 
 /// Convert node list into a tree with one root node
