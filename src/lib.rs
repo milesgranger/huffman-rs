@@ -18,13 +18,15 @@ pub(crate) struct Block<'a> {
 pub fn compress(data: &[u8]) -> Vec<u8> {
     let mut node_list = create_node_list(data);
     let tree = node_list_into_tree(node_list);
-    let mut buffer = BitVec::with_capacity(data.len() / 2);
-    data
-        .iter()
-        .for_each(|byte| {
-            tree.path_for(byte, &mut buffer);
-        });
-    buffer.to_bytes()
+    data.par_chunks(data.len() / 8)
+        .map(|chunk| {
+            let mut buf = BitVec::new();
+            chunk.iter()
+                .for_each(|byte| tree.path_for(byte, &mut buf));
+            buf.to_bytes()
+        })
+        .flat_map(|v| v)
+        .collect::<Vec<u8>>()
 }
 
 #[derive(Debug)]

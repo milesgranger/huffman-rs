@@ -4,7 +4,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    let data = (0..1000)
+    let data = (0..10000)
         .map(|_| b"oh what a beautiful morning, oh what a beautiful day!!".to_vec())
         .flat_map(|v| v)
         .collect::<Vec<u8>>();
