@@ -13,28 +13,17 @@ pub(crate) struct Block<'a> {
     node: Option<Node<'a>>,
     data: &'a [u8],
 }
-impl<'a> Block<'a> {
-    pub fn new(data: &'a [u8]) -> Self {
-        Self { data, node: None }
-    }
-    pub fn compress(&self) -> Vec<u8> {
-        let mut node_list = create_node_list(self.data);
-        let tree = node_list_into_tree(node_list);
-        self.data
-            .iter()
-            .map(|byte| {
-                let mut path = BitVec::new();
-                tree.path_for(byte, &mut path);
-                path
-            })
-            .flat_map(|path| path)
-            .collect::<BitVec>()
-            .to_bytes()
-    }
-}
 
 pub fn compress(data: &[u8]) -> Vec<u8> {
-    Block::new(data).compress()
+    let mut node_list = create_node_list(data);
+    let tree = node_list_into_tree(node_list);
+    let mut buffer = BitVec::new();
+    data
+        .iter()
+        .for_each(|byte| {
+            tree.path_for(byte, &mut buffer);
+        });
+    buffer.to_bytes()
 }
 
 #[derive(Debug)]
@@ -143,7 +132,7 @@ pub(crate) fn node_list_into_tree(mut nodes: Vec<Node<'_>>) -> Node<'_> {
 #[cfg(test)]
 mod tests {
 
-    use crate::{create_node_list, node_list_into_tree, Block};
+    use crate::{create_node_list, node_list_into_tree, compress};
     use bit_vec::BitVec;
     use std::collections::HashSet;
     use std::iter::FromIterator;
@@ -187,15 +176,12 @@ mod tests {
     }
 
     #[test]
-    fn block_compress() {
+    fn test_compress() {
         let data = (0..2)
             .map(|_| b"oh what a beautiful day, oh what a beautiful morning!".to_vec())
             .flat_map(|v| v)
             .collect::<Vec<u8>>();
-        let mut block = Block::new(&data);
-        let compressed = block.compress();
-        dbg!(&data.len());
-        dbg!(&compressed.len());
-        dbg!(String::from_utf8_lossy(&compressed));
+        let compressed = compress(&data);
+        assert!(compressed.len() < data.len());
     }
 }
