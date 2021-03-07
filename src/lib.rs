@@ -1,5 +1,5 @@
 use std::collections::hash_map::RandomState;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use std::iter::FromIterator;
 
 use rayon::prelude::*;
@@ -81,13 +81,15 @@ impl<'a> Node<'a> {
 
 /// Create a node list from input data
 pub(crate) fn create_node_list(input: &[u8]) -> Vec<Node<'_>> {
-    let set: HashSet<&u8, RandomState> = HashSet::from_iter(input.iter());
-    set.iter()
-        .map(|key| {
-            let n_occurances = input.iter().filter(|byte| byte == key).count();
-            Node::new(Some(*key), n_occurances)
-        })
-        .collect()
+    let mut mapping = HashMap::new();
+    input.iter()
+        .for_each(|byte| {
+            let count = mapping.entry(byte).or_insert(0);
+            *count += 1;
+        });
+    mapping.iter()
+        .map(|(k, v)| Node::new(Some(*k), *v))
+        .collect::<Vec<Node>>()
 }
 
 /// Sort node list
